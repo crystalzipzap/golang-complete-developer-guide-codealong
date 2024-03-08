@@ -1,2 +1,20 @@
-# golang-complete-developer-guide-codealong
-Go: The Complete Developer's Guide (Golang)
+# Go: The Complete Developer's Guide (Golang)
+
+## Introduction
+This is a course from Udemy on Golang. The goal is to code along the lectures to study golang. 
+
+## Notes
+
+### Getting Started
+
+### A Simple Start
+
+### Deeper Into Go
+
+### Organizing Data With Structs
+
+### Maps
+
+### Interfaces
+
+### Channels and Go Routines 
