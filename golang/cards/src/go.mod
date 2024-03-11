@@ -1,3 +1,3 @@
-module golang-complete-developer-guide-codealong/cards/src
+module golang/cards/src
 
 go 1.22.0
