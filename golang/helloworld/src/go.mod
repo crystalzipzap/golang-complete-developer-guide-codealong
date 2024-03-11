@@ -1,3 +1,3 @@
-module golang-complete-developer-guide-codealong/helloworld/src
+module golang/helloworld/src
 
 go 1.22.0
