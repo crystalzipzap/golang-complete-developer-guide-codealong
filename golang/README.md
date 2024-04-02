@@ -7,9 +7,44 @@ This is a [course](https://www.udemy.com/course/go-the-complete-developers-guide
 
 ### static vs dynamic typed
 
+Golang is a static-type langauge. 
+
+Basic go types: 
+
+| Type    | Example                                          |
+| ------- | ------------------------------------------------ |
+| bool    | true, false                                      |
+| string  | "uwu", fmt.Sprintf("%d-%d-%d", year, month, day) |
+| int     | 0, 1, 1 ,2 ,3 ,5, 8, 13, 21, 34                  |
+| float64 | 3.1415926                                        |
+
+
+### Collections
+
+**Array & Slices**
+
+- Array: Fixed length list of objects
+- Slice: an array that can grow or shrink, like list() in Python or C#, and ArrayList in Java
+    - every element in a slice must be of same type
+
+**Map**
+
+
+
 ### strong vs weak type
 
 ### Paradigm? 
+
+Paradigm in programming means a set of methods to solve problems or complete tasks. 
+
+- Imperative programming: one of the oldest programming paradigm. It features close relation to machine architecture.
+    - It works by changing the program state through assignment statement. It performs step by step tasks by changing state. The main focus is on how to achive the goal. This paradigm consist of several statments and after execution of all the reult is sotred. 
+    - It's called imperative because as progarmmers we dictate exactly what the computer has to do in a very specic way
+
+- Procedural Programming: a derivation of imperative programming, adding to it the feature of functions (also known as "procedures" or "subroutines")
+    - In procedural programming, the user is encouraged to subdivide the program execution into functions, as a way of improving modularity and organization.
+
+Go is a procedural programming language
 
 ### how does memory management work? 
 
