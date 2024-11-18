@@ -1,4 +1,4 @@
-=import os
+import os
 import re
 import json
 from typing import List, Dict, Any
@@ -7,75 +7,48 @@ from tqdm import tqdm
 class JsonTester:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        self.json_pattern = r'\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}'
+        # Simplified regex pattern to avoid catastrophic backtracking
+        self.json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
         self.json_count = 0
         self.error_count = 0
-        # List of encodings to try
-        self.encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
 
-    def read_file_with_fallback(self, file_path: str) -> str:
-        """Try multiple encodings to read the file."""
-        content = None
-        successful_encoding = None
-
-        for encoding in self.encodings:
-            try:
-                with open(file_path, 'r', encoding=encoding) as file:
-                    content = file.read()
-                successful_encoding = encoding
-                break
-            except UnicodeDecodeError:
-                continue
-            except Exception as e:
-                print(f"Unexpected error reading file {file_path}: {str(e)}")
-                continue
-
-        if content is None:
-            print(f"Failed to read file {file_path} with any encoding")
-            return ""
-
-        print(f"Successfully read file with encoding: {successful_encoding}")
-        return content
-
-    def test_parse_json(self, json_str: str, file_name: str) -> bool:
-        """Test if string can be parsed as JSON."""
-        try:
-            json_obj = json.loads(json_str)
-            return True
-        except json.JSONDecodeError as e:
-            print(f"JSON Parse Error in {file_name}: {str(e)[:100]}")
-            return False
+    def get_sorted_files(self) -> List[str]:
+        """Get sorted list of files in the format ord_aaaa format."""
+        files = [f for f in os.listdir(self.directory_path) 
+                if os.path.isfile(os.path.join(self.directory_path, f)) 
+                and f.startswith('ord_')]
+        return sorted(files)
 
     def process_file(self, file_path: str) -> None:
         """Process a single file and print JSON parsing results."""
-        file_name = os.path.basename(file_path)
-        content = self.read_file_with_fallback(file_path)
-        
-        if not content:
-            print(f"Skipping empty file: {file_name}")
-            return
+        try:
+            with open(file_path, 'r', encoding='latin-1') as file:
+                content = file.read()
+                
+                # Find all potential JSON objects
+                matches = re.finditer(self.json_pattern, content)
+                
+                for match in matches:
+                    json_str = match.group()
+                    try:
+                        json_obj = json.loads(json_str)
+                        self.json_count += 1
+                        if self.json_count % 1000 == 0:
+                            print(f"\nProcessed {self.json_count} JSON objects")
+                    except json.JSONDecodeError:
+                        self.error_count += 1
+                        if self.error_count % 100 == 0:
+                            print(f"Parse errors: {self.error_count}")
 
-        # Find all potential JSON objects
-        matches = re.finditer(self.json_pattern, content)
-        
-        for match in matches:
-            json_str = match.group()
-            if self.test_parse_json(json_str, file_name):
-                self.json_count += 1
-                if self.json_count % 1000 == 0:  # Print every 1000th JSON
-                    print(f"\nValid JSON #{self.json_count} in {file_name}")
-            else:
-                self.error_count += 1
+        except Exception as e:
+            print(f"Error processing file {file_path}: {str(e)}")
 
     def process_files(self) -> None:
-        """Process all files in the directory."""
-        files = sorted([f for f in os.listdir(self.directory_path) 
-                if os.path.isfile(os.path.join(self.directory_path, f)) 
-                and f.startswith('ord_')])
-        
+        """Process all files in directory."""
+        files = self.get_sorted_files()
         print(f"Found {len(files)} files to process")
-
-        for file_name in tqdm(files, desc="Processing files"):
+        
+        for file_name in tqdm(files):
             file_path = os.path.join(self.directory_path, file_name)
             file_size = os.path.getsize(file_path)
             print(f"\nProcessing: {file_name} (Size: {file_size/1024/1024:.2f} MB)")
