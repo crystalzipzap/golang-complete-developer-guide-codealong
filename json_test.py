@@ -7,9 +7,8 @@ from tqdm import tqdm
 class JsonTester:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        # Simplified regex pattern to avoid catastrophic backtracking
         self.json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
-        self.json_count = 0
+        self.event_date_count = 0
         self.error_count = 0
 
     def get_sorted_files(self) -> List[str]:
@@ -20,7 +19,7 @@ class JsonTester:
         return sorted(files)
 
     def process_file(self, file_path: str) -> None:
-        """Process a single file and print JSON parsing results."""
+        """Process a single file and count Event_Date occurrences."""
         try:
             with open(file_path, 'r', encoding='latin-1') as file:
                 content = file.read()
@@ -32,16 +31,23 @@ class JsonTester:
                     json_str = match.group()
                     try:
                         json_obj = json.loads(json_str)
-                        self.json_count += 1
-                        if self.json_count % 1000 == 0:
-                            print(f"\nProcessed {self.json_count} JSON objects")
+                        self.count_event_date(json_obj)
                     except json.JSONDecodeError:
                         self.error_count += 1
-                        if self.error_count % 100 == 0:
-                            print(f"Parse errors: {self.error_count}")
 
         except Exception as e:
             print(f"Error processing file {file_path}: {str(e)}")
+
+    def count_event_date(self, obj: Any) -> None:
+        """Recursively count occurrences of Event_Date in JSON object."""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "Event_Date":
+                    self.event_date_count += 1
+                self.count_event_date(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                self.count_event_date(item)
 
     def process_files(self) -> None:
         """Process all files in directory."""
@@ -50,20 +56,24 @@ class JsonTester:
         
         for file_name in tqdm(files):
             file_path = os.path.join(self.directory_path, file_name)
-            file_size = os.path.getsize(file_path)
-            print(f"\nProcessing: {file_name} (Size: {file_size/1024/1024:.2f} MB)")
-            
             self.process_file(file_path)
-            print(f"Current counts - Valid JSONs: {self.json_count}, Errors: {self.error_count}")
+
+    def get_results(self) -> Dict[str, int]:
+        """Return processing results."""
+        return {
+            "Event_Date_Count": self.event_date_count,
+            "Error_Count": self.error_count
+        }
 
 def main():
     directory_path = "output_dir"
     tester = JsonTester(directory_path)
     tester.process_files()
+    results = tester.get_results()
     
     print("\nFinal Results:")
-    print(f"Total valid JSON objects found: {tester.json_count}")
-    print(f"Total parsing errors: {tester.error_count}")
+    print(f"Total Event_Date occurrences: {results['Event_Date_Count']}")
+    print(f"Total parsing errors: {results['Error_Count']}")
 
 if __name__ == "__main__":
     main()
