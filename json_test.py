@@ -7,7 +7,8 @@ from tqdm import tqdm
 class JsonTester:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        self.json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        # Modified regex pattern to be more precise
+        self.json_pattern = r'\{(?:[^{}]|"(?:\\.|[^"\\])*"|\{(?:[^{}]|"(?:\\.|[^"\\])*")*\})*\}'
         self.event_date_count = 0
         self.error_count = 0
 
@@ -18,29 +19,30 @@ class JsonTester:
                 and f.startswith('ord_') and f.endswith('.erf')]
         
         def natural_sort_key(filename: str) -> int:
-            """Extract and return numeric value from filename."""
-            # Extract number from ord_XXXXX.erf format
-            number = int(filename.split('_')[1].split('.')[0])
-            return number
-
+            return int(filename.split('_')[1].split('.')[0])
+        
         return sorted(files, key=natural_sort_key)
 
     def process_file(self, file_path: str) -> None:
         """Process a single file and count Event_Date occurrences."""
         try:
             with open(file_path, 'r', encoding='latin-1') as file:
-                # Process file line by line
                 for line in file:
                     # Find all JSON objects in the current line
-                    matches = re.finditer(self.json_pattern, line)
-                    
-                    for match in matches:
+                    start_pos = 0
+                    while True:
+                        match = re.search(self.json_pattern, line[start_pos:])
+                        if not match:
+                            break
+                            
                         json_str = match.group()
                         try:
                             json_obj = json.loads(json_str)
                             self.count_event_date(json_obj)
+                            start_pos += match.end()
                         except json.JSONDecodeError:
                             self.error_count += 1
+                            start_pos += 1
 
         except Exception as e:
             print(f"Error processing file {file_path}: {str(e)}")
