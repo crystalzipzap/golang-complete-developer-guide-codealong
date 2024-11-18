@@ -7,8 +7,8 @@ from tqdm import tqdm
 class JsonTester:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        # Modified regex pattern to be more precise
-        self.json_pattern = r'\{(?:[^{}]|"(?:\\.|[^"\\])*"|\{(?:[^{}]|"(?:\\.|[^"\\])*")*\})*\}'
+        # Optimized regex pattern to avoid backtracking
+        self.json_pattern = r'\{(?:[^{}]|(?R))*\}'
         self.event_date_count = 0
         self.error_count = 0
 
@@ -27,22 +27,18 @@ class JsonTester:
         """Process a single file and count Event_Date occurrences."""
         try:
             with open(file_path, 'r', encoding='latin-1') as file:
-                for line in file:
-                    # Find all JSON objects in the current line
-                    start_pos = 0
-                    while True:
-                        match = re.search(self.json_pattern, line[start_pos:])
-                        if not match:
-                            break
-                            
-                        json_str = match.group()
-                        try:
-                            json_obj = json.loads(json_str)
-                            self.count_event_date(json_obj)
-                            start_pos += match.end()
-                        except json.JSONDecodeError:
-                            self.error_count += 1
-                            start_pos += 1
+                content = file.read()
+                
+                # Find all JSON objects in the file
+                matches = re.finditer(self.json_pattern, content, re.VERBOSE)
+                
+                for match in matches:
+                    json_str = match.group()
+                    try:
+                        json_obj = json.loads(json_str)
+                        self.count_event_date(json_obj)
+                    except json.JSONDecodeError:
+                        self.error_count += 1
 
         except Exception as e:
             print(f"Error processing file {file_path}: {str(e)}")
