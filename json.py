@@ -11,23 +11,24 @@ class JsonFileParser:
         self.incomplete_data = ""
 
     def get_sorted_files(self) -> List[str]:
-        """Get sorted list of files in the format ord_aa, ord_ab, etc."""
-        files = [f for f in os.listdir(self.directory_path) 
-                if os.path.isfile(os.path.join(self.directory_path, f)) 
-                and f.startswith('ord_')]
-        
-        def natural_sort_key(filename: str) -> tuple:
-            """Custom sort key for ord_aa format."""
-            # Extract the suffix after 'ord_'
-            suffix = filename.split('_')[1]
-            # Convert to numeric value for sorting
-            # 'aa' = 0, 'ab' = 1, 'ac' = 2, etc.
-            value = 0
-            for i, char in enumerate(reversed(suffix)):
-                value += (ord(char) - ord('a')) * (26 ** i)
-            return value
+    """Get sorted list of files in the format ord_aaaa, ord_aaab, etc."""
+    files = [f for f in os.listdir(self.directory_path) 
+            if os.path.isfile(os.path.join(self.directory_path, f)) 
+            and f.startswith('ord_')]
+    
+    def natural_sort_key(filename: str) -> int:
+        """Custom sort key for ord_aaaa format."""
+        # Extract the 4-character suffix after 'ord_'
+        suffix = filename.split('_')[1]
+        # Convert to numeric value for sorting
+        value = 0
+        for i, char in enumerate(reversed(suffix)):
+            # Calculate position value: a=0, b=1, etc.
+            # Multiply by power of 26 based on position
+            value += (ord(char) - ord('a')) * (26 ** i)
+        return value
 
-        return sorted(files, key=natural_sort_key)
+    return sorted(files, key=natural_sort_key)
 
     def read_file_content(self, file_path: str) -> str:
         """Read file content with proper encoding."""
