@@ -7,10 +7,11 @@ from tqdm import tqdm
 class JsonTester:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        # Optimized regex pattern to avoid backtracking
-        self.json_pattern = r'\{(?:[^{}]|(?R))*\}'
+        # Simplified pattern that's less prone to backtracking
+        self.json_pattern = r'\{[^{}]*\}'
         self.event_date_count = 0
         self.error_count = 0
+        self.processed_count = 0
 
     def get_sorted_files(self) -> List[str]:
         """Get sorted list of files in the format ord_00001.erf to ord_79554.erf."""
@@ -27,18 +28,37 @@ class JsonTester:
         """Process a single file and count Event_Date occurrences."""
         try:
             with open(file_path, 'r', encoding='latin-1') as file:
-                content = file.read()
-                
-                # Find all JSON objects in the file
-                matches = re.finditer(self.json_pattern, content, re.VERBOSE)
-                
-                for match in matches:
-                    json_str = match.group()
-                    try:
-                        json_obj = json.loads(json_str)
-                        self.count_event_date(json_obj)
-                    except json.JSONDecodeError:
-                        self.error_count += 1
+                for line in file:
+                    # First pass: find potential JSON objects
+                    start_idx = 0
+                    while True:
+                        start = line.find('{', start_idx)
+                        if start == -1:
+                            break
+                        
+                        # Find matching closing brace
+                        brace_count = 1
+                        pos = start + 1
+                        while pos < len(line) and brace_count > 0:
+                            if line[pos] == '{':
+                                brace_count += 1
+                            elif line[pos] == '}':
+                                brace_count -= 1
+                            pos += 1
+                        
+                        if brace_count == 0:
+                            # Found complete JSON object
+                            json_str = line[start:pos]
+                            try:
+                                json_obj = json.loads(json_str)
+                                self.count_event_date(json_obj)
+                                self.processed_count += 1
+                            except json.JSONDecodeError:
+                                self.error_count += 1
+                            
+                            start_idx = pos
+                        else:
+                            start_idx = start + 1
 
         except Exception as e:
             print(f"Error processing file {file_path}: {str(e)}")
@@ -67,7 +87,8 @@ class JsonTester:
         """Return processing results."""
         return {
             "Event_Date_Count": self.event_date_count,
-            "Error_Count": self.error_count
+            "Error_Count": self.error_count,
+            "Processed_Count": self.processed_count
         }
 
 def main():
@@ -78,6 +99,7 @@ def main():
     
     print("\nFinal Results:")
     print(f"Total Event_Date occurrences: {results['Event_Date_Count']}")
+    print(f"Total JSON objects processed: {results['Processed_Count']}")
     print(f"Total parsing errors: {results['Error_Count']}")
 
 if __name__ == "__main__":
