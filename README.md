@@ -1,7 +1,7 @@
 # Syntax Sampler: Getting Start on A Particular Programming Language
 
 ```
-pv input_file | csplit --prefix=output_dir/output_ -n 6 -b '%06d.json' - '/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/' '{*}'
+pv input_file | csplit --prefix=output_dir/output_ -n 6 -b '%06d.json' - '/\\{(?:[^{}]*|\\{(?:[^{}]*|\\{[^{}]*\\})*\\})*\\}/' '{*}'
 
 ```
 
