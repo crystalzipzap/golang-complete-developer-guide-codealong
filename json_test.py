@@ -12,28 +12,35 @@ class JsonTester:
         self.error_count = 0
 
     def get_sorted_files(self) -> List[str]:
-        """Get sorted list of files in the format ord_aaaa format."""
+        """Get sorted list of files in the format ord_00001.erf to ord_79554.erf."""
         files = [f for f in os.listdir(self.directory_path) 
                 if os.path.isfile(os.path.join(self.directory_path, f)) 
-                and f.startswith('ord_')]
-        return sorted(files)
+                and f.startswith('ord_') and f.endswith('.erf')]
+        
+        def natural_sort_key(filename: str) -> int:
+            """Extract and return numeric value from filename."""
+            # Extract number from ord_XXXXX.erf format
+            number = int(filename.split('_')[1].split('.')[0])
+            return number
+
+        return sorted(files, key=natural_sort_key)
 
     def process_file(self, file_path: str) -> None:
         """Process a single file and count Event_Date occurrences."""
         try:
             with open(file_path, 'r', encoding='latin-1') as file:
-                content = file.read()
-                
-                # Find all potential JSON objects
-                matches = re.finditer(self.json_pattern, content)
-                
-                for match in matches:
-                    json_str = match.group()
-                    try:
-                        json_obj = json.loads(json_str)
-                        self.count_event_date(json_obj)
-                    except json.JSONDecodeError:
-                        self.error_count += 1
+                # Process file line by line
+                for line in file:
+                    # Find all JSON objects in the current line
+                    matches = re.finditer(self.json_pattern, line)
+                    
+                    for match in matches:
+                        json_str = match.group()
+                        try:
+                            json_obj = json.loads(json_str)
+                            self.count_event_date(json_obj)
+                        except json.JSONDecodeError:
+                            self.error_count += 1
 
         except Exception as e:
             print(f"Error processing file {file_path}: {str(e)}")
