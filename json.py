@@ -6,16 +6,28 @@ from typing import List, Dict, Any
 class JsonFileParser:
     def __init__(self, directory_path: str):
         self.directory_path = directory_path
-        # Regex pattern for JSON objects
         self.json_pattern = r'\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}'
         self.event_date_count = 0
         self.incomplete_data = ""
 
     def get_sorted_files(self) -> List[str]:
-        """Get sorted list of files from directory."""
-        files = [f for f in os.listdir(self.directory_path) if os.path.isfile(os.path.join(self.directory_path, f))]
-        # Sort files numerically
-        return sorted(files, key=lambda x: int(''.join(filter(str.isdigit, x))))
+        """Get sorted list of files in the format ord_aa, ord_ab, etc."""
+        files = [f for f in os.listdir(self.directory_path) 
+                if os.path.isfile(os.path.join(self.directory_path, f)) 
+                and f.startswith('ord_')]
+        
+        def natural_sort_key(filename: str) -> tuple:
+            """Custom sort key for ord_aa format."""
+            # Extract the suffix after 'ord_'
+            suffix = filename.split('_')[1]
+            # Convert to numeric value for sorting
+            # 'aa' = 0, 'ab' = 1, 'ac' = 2, etc.
+            value = 0
+            for i, char in enumerate(reversed(suffix)):
+                value += (ord(char) - ord('a')) * (26 ** i)
+            return value
+
+        return sorted(files, key=natural_sort_key)
 
     def read_file_content(self, file_path: str) -> str:
         """Read file content with proper encoding."""
@@ -31,7 +43,6 @@ class JsonFileParser:
         """Parse JSON string and count Event_Date occurrences."""
         try:
             json_obj = json.loads(json_str)
-            # Count Event_Date occurrences recursively
             self.count_event_dates(json_obj)
             return json_obj
         except json.JSONDecodeError:
@@ -51,12 +62,15 @@ class JsonFileParser:
     def process_files(self) -> None:
         """Process all files in the directory."""
         files = self.get_sorted_files()
+        total_files = len(files)
         
-        for file_name in files:
+        print(f"Found {total_files} files to process")
+        
+        for i, file_name in enumerate(files, 1):
             file_path = os.path.join(self.directory_path, file_name)
-            content = self.read_file_content(file_path)
+            print(f"Processing file {i}/{total_files}: {file_name}")
             
-            # Append any incomplete data from previous file
+            content = self.read_file_content(file_path)
             content = self.incomplete_data + content
             
             # Find all JSON objects
@@ -70,11 +84,14 @@ class JsonFileParser:
             
             # Store incomplete data for next iteration
             self.incomplete_data = content[last_end:]
+            
+            print(f"Current Event_Date count: {self.event_date_count}")
 
     def get_results(self) -> Dict[str, int]:
         """Return processing results."""
         return {
-            "Event_Date_Count": self.event_date_count
+            "Event_Date_Count": self.event_date_count,
+            "Remaining_Data_Length": len(self.incomplete_data)
         }
 
 def main():
@@ -85,7 +102,12 @@ def main():
     parser.process_files()
     results = parser.get_results()
     
+    print("\nFinal Results:")
     print(f"Total Event_Date occurrences: {results['Event_Date_Count']}")
+    print(f"Remaining unparsed data length: {results['Remaining_Data_Length']}")
+    
+    if results['Remaining_Data_Length'] > 0:
+        print("Warning: Some data remained unparsed at the end of processing")
 
 if __name__ == "__main__":
     main()
